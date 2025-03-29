@@ -1,0 +1,4 @@
+To do:
+    DM users their warnings
+    add a TON more checks and cases
+    send email to sl if vajra says yes. 
