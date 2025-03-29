@@ -46,83 +46,8 @@ stored_messages = []
 warning_message = ""
 log_message = ""
 last_message_id = ""
-#Function to create DM
-def createDM(access_token, id, orgID):
-    url = f"{API_BASE_URL}api/v1/dm.create"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",
-    }
-    request_payload = {
-        "organization_id": orgID,
-        "user_id": id,
-    }
-    try:
-        response = requests.post(url, headers=headers, json=request_payload)
-        response.raise_for_status()
-        response_json = response.json()
-        return response_json
-    except requests.exceptions.HTTPError as http_err:
-        logger.error(f"HTTP error occurred: {http_err} - Response: {response.text}")
-        if response.status_code == 401:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-        else:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.RequestException as req_err:
-        logger.error(f"Request exception occurred: {req_err}")
-        raise BackendError(f"Request exception occurred: {req_err}")
-    except Exception as err:
-        logger.error(f"An unexpected error occurred: {err}")
-        raise BackendError(f"An unexpected error occurred: {err}")
-def getUsersBubbles(access_token):
-    url = f"{api_base_url}api/v3/bubble.list"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",  # Ensure 'Bearer' is included
-    }
 
-    try:
-        response = requests.post(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
-        logger.error(f"HTTP error occurred: {http_err} - Response: {response.text}")
-        if response.status_code == 401:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-        else:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.RequestException as req_err:
-        logger.error(f"Request exception occurred: {req_err}")
-        raise BackendError(f"Request exception occurred: {req_err}")
-    except Exception as err:
-        logger.error(f"An unexpected error occurred: {err}")
-        raise BackendError(f"An unexpected error occurred: {err}")
-def get_bubble_info(access_token, bubbleID):
-    url = f"{api_base_url}api/v2/bubble.info"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",
-    }
-    request_payload = {
-        "bubble_id": bubbleID,
-    }
-    try:
-        response = requests.post(url, headers=headers, json=request_payload)
-        response.raise_for_status()
-        response_json = response.json()
-        return response_json
-    except requests.exceptions.HTTPError as http_err:
-        logger.error(f"HTTP error occurred: {http_err} - Response: {response.text}")
-        if response.status_code == 401:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-        else:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.RequestException as req_err:
-        logger.error(f"Request exception occurred: {req_err}")
-        raise BackendError(f"Request exception occurred: {req_err}")
-    except Exception as err:
-        logger.error(f"An unexpected error occurred: {err}")
-        raise BackendError(f"An unexpected error occurred: {err}")
+
 # Bad Words List URL
 URL = "https://raw.githubusercontent.com/MrSpots1/MrSpots1.github.io/main/words%20%5BMConverter.eu%5D.txt"
 
@@ -197,67 +122,9 @@ async def connect_and_listen(bubble_id, bubble_sid):
                     
 
                     process_message(msg_text, user_firstname, user_lastname, timestamp, msg_media, user_id_websocket)
-#Function to add a member to a bubble
-#invitations is a list of user IDs, in the form of [{user_id: 5302519}, {user_id: 5302367}]
-def addMemberToBubble(access_token, bubbleID, invitations, sendemails, sendsms):
-    url = f"{api_base_url}api/v1/bubble.invite"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",
-    }
-    request_payload = {
-        "bubbleID": bubbleID,
-        "invitations": invitations,
-        "sendemails": sendemails,
-        "sendsms": sendsms,
-    }
-    try:
-        response = requests.post(url, headers=headers, json=request_payload)
-        response.raise_for_status()
-        response_json = response.json()
-        return response_json
-    except requests.exceptions.HTTPError as http_err:
-        logger.error(f"HTTP error occurred: {http_err} - Response: {response.text}")
-        if response.status_code == 401:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-        else:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.RequestException as req_err:
-        logger.error(f"Request exception occurred: {req_err}")
-        raise BackendError(f"Request exception occurred: {req_err}")
-    except Exception as err:
-        logger.error(f"An unexpected error occurred: {err}")
-        raise BackendError(f"An unexpected error occurred: {err}")
 
-#Function to kick user from a bubble
-#users is a list of user IDs, in the form of [5302519]
-def kickUserFromBubble(access_token, bubbleID, users):
-    url = f"{api_base_url}api/v1/bubble.kick"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",
-    }
-    request_payload = {
-        "bubble_id": bubbleID,
-        users: users,
-    }
-    try:
-        response = requests.post(url, headers=headers, json=request_payload)
-        response.raise_for_status()
-        response_json = response.json()
-        return response_json
-    except requests.exceptions.HTTPError as http_err:
-        logger.error(f"HTTP error occurred: {http_err} - Response: {response.text}")
-        if response.status_code == 401:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-        else:
-            raise BackendError(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.RequestException as req_err:
-        logger.error(f"Request exception occurred: {req_err}")
-        raise BackendError(f"Request exception occurred: {req_err}")
-    except Exception as err:
-        logger.error(f"An unexpected error occurred: {err}")
-        raise BackendError(f"An unexpected error occurred: {err}")
+
+
 async def main(bubble_id, bubble_sid):
     '"send_message("Warning: The Moderation Bot is now active and watching for criminals...", main_bubble_ID, media)"'
     await connect_and_listen(bubble_id, bubble_sid)

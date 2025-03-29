@@ -4,7 +4,10 @@ from datetime import datetime, timezone
 import time
 import json
 import re
-
+from ProntoBackend.pronto import *
+from ProntoBackend.readjson import *
+from ProntoBackend.systemcheck import *
+auth_path, chats_path, bubbles_path, loginTokenJSONPath, authTokenJSONPath, verificationCodeResponseJSONPath, settings_path, encryption_path, logs_path, settingsJSONPath, keysJSONPath, bubbleOverviewJSONPath, users_path = createappfolders()
 accesstoken = ""
 api_base_url = "https://stanfordohs.pronto.io/"
 user_id = "5301889"
@@ -163,6 +166,6 @@ def send_message(message, bubble, send_media):
 BAD_WORDS = download_wordlist(URL)
 
 BAD_WORDS_REGEX = re.compile(r"\b(" + "|".join(re.escape(word) for word in BAD_WORDS) + r")\b", re.IGNORECASE)
-
+dms = get_dms(bubbleOverviewJSONPath)
 # Start monitoring messages
 monitor_messages()
