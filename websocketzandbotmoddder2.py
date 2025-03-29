@@ -50,7 +50,10 @@ stored_messages = []
 warning_message = ""
 log_message = ""
 last_message_id = ""
-
+global adminrules
+adminrules = ""
+global rules
+rules = ""
 
 # Bad Words List URL
 URL = "https://raw.githubusercontent.com/MrSpots1/MrSpots1.github.io/main/words%20%5BMConverter.eu%5D.txt"
@@ -155,13 +158,25 @@ def process_message(msg_text, user_firstname, user_lastname, timestamp, msg_medi
 # Check for any commands in the message
 def check_for_commands(msg_text, user_sender_id):
     """Check for any commands in the message."""
+    if msg_text.startswith("!rules"):
+        if rules == "":
+            send_message("Warning: No rules have been set.", main_bubble_ID, media)
+        else:
+            send_message(f"Warning: The rules are: {rules}", main_bubble_ID, media)
+    elif msg_text.startswith("!adminrules"):
+        if adminrules == "":
+            send_message("Warning: No admin rules have been set.", main_bubble_ID, media)
+        else:
+            send_message(f"Warning: The admin rules are: {adminrules}", main_bubble_ID, media)
+    elif msg_text.startswith("!credits"):
+        send_message("This bot was created by:\nTaylan Derstadt (co29) (Lead Dev)\nVajra Vanukuri (co29) (Secondary Dev)\nJimbo Miller (co28) (Secondary Dev)\nAdditional thanks to Greyson Wyler (co29, websocket help) and Paul Estrada (co27, pronto api help)", main_bubble_ID, media)
     if msg_text.startswith("!moderationbot"):
-        
+        command = msg_text[1:].split()
         
         if user_sender_id not in bubble_owners:
             send_message("Warning: You do not have permission to use this command.", main_bubble_ID, media)
         else:
-            command = msg_text[1:].split()
+            
             if (len(command) == 2):
                 global is_bot_on
                 if command[1] == "start":
@@ -208,6 +223,12 @@ def check_for_commands(msg_text, user_sender_id):
                     elif (command[2] == "logchat"):
                         log_channel_ID = command[3]
                         send_message(f"Log channel ID changed to {log_channel_ID}.", main_bubble_ID, media)
+                    elif (command[2] == "rules"):
+                        rules = command[3]
+                        send_message(f"Rules changed to {rules}.", main_bubble_ID, media)
+                    elif (command[2] == "adminrules"):
+                        adminrules = command[3]
+                        send_message(f"Admin rules changed to {adminrules}.", main_bubble_ID, media)
                     else:
                         send_message(f"Unknown command: '{msg_text}'", main_bubble_ID, media)
             elif len(command) == 5:
