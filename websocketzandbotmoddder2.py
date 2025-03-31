@@ -42,7 +42,8 @@ global warning_count
 warning_count = []
 global settings
 settings = [1, 1, 1, 1, 1]
-
+global is_bot_owner
+is_bot_owner = False
 # Number of flagged sections in a message before a warning is issued
 global flagsetting
 flagsetting = 3
@@ -90,6 +91,18 @@ def download_wordlist(url):
 BAD_WORDS = download_wordlist(URL)
 BAD_WORDS_REGEX = re.compile(r"\b(" + "|".join(re.escape(word) for word in BAD_WORDS) + r")\b", re.IGNORECASE)
 
+
+# Checks if a string is a 7 digit number
+def is_seven_digit_number(s):
+    return bool(re.match(r'^\d{7}$', s))
+
+
+# Checks if a 7 digit string is a valid buble
+def check_if_valid_bubble(imput):
+    imput 
+    #add validation logic here with pronto api n stuff? should pass in a 7 digit number
+
+
 # WebSocket and API Functions
 def chat_auth(bubble_id, bubble_sid, socket_id):
     url = f"{api_base_url}api/v1/pusher.auth"
@@ -127,6 +140,8 @@ async def connect_and_listen(bubble_id, bubble_sid):
                 print(f"Socket ID: {socket_id}")
             else:
                 print("Socket ID not found in response")
+        
+        #add a check for owners changing to update the bubble_owners and is_bot_owner
 
         # Listen for incoming messages
         async for message in websocket:
@@ -150,9 +165,7 @@ async def connect_and_listen(bubble_id, bubble_sid):
                     process_message(msg_text, user_firstname, user_lastname, timestamp, msg_media, user_id_websocket)
 
 
-
 async def main(bubble_id, bubble_sid):
-    '"send_message("Warning: The Moderation Bot is now active and watching for criminals...", main_bubble_ID, media)"'
     await connect_and_listen(bubble_id, bubble_sid)
 
 
@@ -366,89 +379,6 @@ def moderate_message(msg_text, sent_user_id, matches_warnings, timestamp):
     if warnings:
         increase_warning_count(sent_user_id, len(warnings))
 
-#depricated? just here for the next github push (which im going to do rn) so if the above code needs backtracking i have this for reference
-"""
-# Main function that runs the different moderation checks on the message and increases warnings accourdingly.
-def moderate_message(msg_text, sent_user_id, matches_warnings, timestamp):
-    # Declare variables
-    warnings_in_message = 0
-    bad_section_flag = 0
-    index = warning_count.index(matches_warnings[0])
-    previous_warnings = warning_count[index][1]
-
-
-      # Check if the message contains any flagged words.
-    if (settings[0] == 1 and flagsetting == 1):
-        if bool(BAD_WORDS_REGEX.search(msg_text)):
-            countflags = BAD_WORDS_REGEX.findall(msg_text)
-            warnings_in_message += 1
-            warning_message = f"Warning: <@{sent_user_id}> sent a flagged message with {len(countflags)} flagged section(s)! This is their {previous_warnings + warnings_in_message} warning."
-            print(warning_message)
-            send_message(warning_message, main_bubble_ID, media)
-            bad_section_flag = len(countflags)
-            
-
-
-    if sent_user_id not in stored_messages:
-        # If user_id is not in dictionary, initialize with three blank StoredMessage objects
-        stored_messages[sent_user_id] = [
-            StoredMessage(), StoredMessage(), StoredMessage()
-        ]
-
-    # Get the user's stored messages
-    user_messages = stored_messages[sent_user_id]
-
-    # Shift messages down (position 0 becomes 1, position 1 becomes 2)
-    user_messages[0], user_messages[1], user_messages[2] = user_messages[1], user_messages[2], StoredMessage(msg_text, bad_section_flag, timestamp)
-    
-
-    # Check for repeated messages
-    if settings[2] == 1:
-        if stored_messages[index][1] == stored_messages[index][3] and stored_messages[index][3] == stored_messages[index][5]:
-            warnings_in_message += 1
-            warning_message = f"Warning: <@{sent_user_id}> sent a repeated message! This is their {previous_warnings + warnings_in_message} warning."
-            print(warning_message)
-            stored_messages[index][5] = " "
-            stored_messages[index][3] = ""
-            stored_messages[index][1] = ""
-            send_message(warning_message, main_bubble_ID, media)
-    
-    # Check if the user has exceeded the flag limit
-    if settings[0] == 1 and flagsetting > 1:
-        totalcount = stored_messages[index][6] + stored_messages[index][4] + stored_messages[index][2]
-        if totalcount >= flagsetting:
-            warnings_in_message += 1
-            warning_message = f"Warning: <@{sent_user_id}> has had {totalcount} flagged sections in the last 3 messages! This is their {previous_warnings + warnings_in_message} warning."
-            send_message(warning_message, main_bubble_ID, media)
-            print(warning_message)
-            stored_messages[index][6] = 0
-            stored_messages[index][4] = 0
-            stored_messages[index][2] = 0
-    
-    # Check if the user has exceeded the rate limit
-    if settings[4] == 1:
-        if (stored_messages[index][9] - stored_messages[index][7]).total_seconds() < ratelimitseconds:
-            stored_messages[index][7] = datetime.min 
-            stored_messages[index][8] = datetime.min 
-            stored_messages[index][9] = datetime.min 
-            warnings_in_message += 1
-            warning_message = f"Warning: <@{sent_user_id}> has exceded the rate limits! This is their {previous_warnings + warnings_in_message} warning."
-            send_message(warning_message, main_bubble_ID, media)
-            print(warning_message)
-
-    # Check if the message exceeds a set length
-    if settings[3] == 1:
-        if len(msg_text) > message_max_length:
-            warnings_in_message += 1
-            warning_message = f"Warning: <@{sent_user_id}> sent a message that is {len(msg_text)} characters long! This is their {previous_warnings + warnings_in_message} warning."
-            send_message(warning_message, main_bubble_ID, media)
-            print(warning_message)
-
-    # Increase the warning count if there are any warnings
-    if (warnings_in_message > 0):
-        increase_warning_count(sent_user_id, warnings_in_message)
-"""
-    
 
 # Log message details to another channel
 def log(msg_text, sent_user_id, msg_media):
@@ -504,11 +434,31 @@ def send_message(message, bubble, send_media):
 
 #startup stuff
 print("This bot was created by:\nTaylan Derstadt (co29) (Lead Dev)\nVajra Vanukuri (co29) (Secondary Dev)\nJimbo Miller (co28) (Secondary Dev)\nAdditional thanks to Greyson Wyler (co29, websocket help) and Paul Estrada (co27, pronto api help)")
-main_bubble_ID = input("Ender bubble id: ")
-log_channel_ID = input("Enter log channel id: ")
+while True:
+    main_bubble_ID = input("Ender bubble id: ")
+    if is_seven_digit_number(main_bubble_ID):
+        if check_if_valid_bubble(main_bubble_ID):
+            break
+        else:
+            print("This is not a valid bubble id")
+    else:
+        print("This is not a valid 7 digit bubble id")
+
+while True:
+    log_channel_ID = input("Enter log channel id: ")
+    if is_seven_digit_number(log_channel_ID):
+        if check_if_valid_bubble(log_channel_ID):
+            break
+        else:
+            print("This is not a valid bubble id")
+    else:
+        print("This is not a valid 7 digit bubble id")
+
 bubble_id = main_bubble_ID
 bubble_info = get_bubble_info(accesstoken, bubble_id)
 bubble_owners = [row["user_id"] for row in bubble_info["bubble"]["memberships"] if row["role"] == "owner"]
+if user_id in bubble_owners:
+    is_bot_owner = True
 bubbles = getUsersBubbles(accesstoken)
 dms = get_dms(bubbleOverviewJSONPath)
 bubble_sid = bubble_info["bubble"]["channelcode"]

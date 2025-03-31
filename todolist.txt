@@ -2,3 +2,19 @@ To do:
     DM users their warnings
     add a TON more checks and cases
     send email to sl if vajra says yes. 
+    add a check for owners changing to update the bubble_owners and is_bot_owner in the websocket which should also log owner changes in the log chat
+    add validation logic with pronto api n stuff? should pass in a 7 digit number and return a bool of if that's a bubble id in it's function, check_if_valid_bubble
+
+
+
+
+
+
+
+
+
+
+
+
+
+    start work on maybe just maybe getting it to work on multiple chats? 
