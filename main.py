@@ -13,6 +13,7 @@ from dataclasses import dataclass, asdict
 from ProntoBackend.pronto import *
 from ProntoBackend.readjson import *
 from ProntoBackend.systemcheck import *
+from ProntoBackend.accesstoken import *
 auth_path, chats_path, bubbles_path, loginTokenJSONPath, authTokenJSONPath, verificationCodeResponseJSONPath, settings_path, encryption_path, logs_path, settingsJSONPath, keysJSONPath, bubbleOverviewJSONPath, users_path = createappfolders()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ class StoredMessage:
 # API Base URL and Credentials
 api_base_url = "https://stanfordohs.pronto.io/"
 accesstoken = ""
+accesstoken = getAccesstoken()
 user_id = "5301889"
 int_user_id = 5301889
 main_bubble_ID = "4209040"
