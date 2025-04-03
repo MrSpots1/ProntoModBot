@@ -13,7 +13,7 @@ from dataclasses import dataclass, asdict
 from ProntoBackend.pronto import *
 from ProntoBackend.readjson import *
 from ProntoBackend.systemcheck import *
-from ProntoBackend.accesstoken import *
+from ProntoBackend.__pycache__.accesstoken import *
 auth_path, chats_path, bubbles_path, loginTokenJSONPath, authTokenJSONPath, verificationCodeResponseJSONPath, settings_path, encryption_path, logs_path, settingsJSONPath, keysJSONPath, bubbleOverviewJSONPath, users_path = createappfolders()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
