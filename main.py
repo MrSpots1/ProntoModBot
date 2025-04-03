@@ -383,7 +383,11 @@ def moderate_message(msg_text, sent_user_id, matches_warnings, timestamp):
 # Log message details to another channel
 def log(msg_text, sent_user_id, msg_media):
     log_message = f"Message sent by <@{sent_user_id}>: {msg_text}"
-    send_message(log_message, log_channel_ID, msg_media)
+    file_keys = []
+    for file in msg_media:
+        file_keys.append(upload_file_and_get_key[file])
+
+    send_message(log_message, log_channel_ID, file_keys)
     print(log_message)
 
 
@@ -430,7 +434,33 @@ def send_message(message, bubble, send_media):
     url = f"{api_base_url}api/v1/message.create"
     response = requests.post(url, headers=headers, json=data)
     response.raise_for_status()
+def upload_file_and_get_key(file_path, filename):
+    url = "https://api.pronto.io/api/files"
+    try:
+        # Open the file and prepare headers
+        with open(file_path, 'rb') as file:
+            file_content = file.read()
+            
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {accesstoken}",
+            "Content-Length": str(len(file_content)),
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": "application/octet-stream"
+        }
 
+        # Send the PUT request
+        response = requests.put(url, headers=headers, data=file_content)
+        
+        # Check if the request was successful
+        if response.status_code == 200:
+            response_data = response.json()
+            file_key = response_data["data"]["key"]
+            return file_key
+        else:
+            return f"Request failed with status code: {response.status_code}, Error: {response.text}"
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 #startup stuff
 print("This bot was created by:\nTaylan Derstadt (co29) (Lead Dev)\nVajra Vanukuri (co29) (Secondary Dev)\nJimbo Miller (co28) (Secondary Dev)\nAdditional thanks to Greyson Wyler (co29, websocket help) and Paul Estrada (co27, pronto api help)")
