@@ -100,6 +100,7 @@ def is_seven_digit_number(s):
 # Checks if a 7 digit string is a valid buble
 def check_if_valid_bubble(imput):
     imput 
+    return True
     #add validation logic here with pronto api n stuff? should pass in a 7 digit number
 
 
@@ -491,6 +492,7 @@ if user_id in bubble_owners:
     is_bot_owner = True
 bubbles = getUsersBubbles(accesstoken)
 dms = get_dms(bubbleOverviewJSONPath)
+print(dms)
 bubble_sid = bubble_info["bubble"]["channelcode"]
 print(bubble_sid)
 asyncio.run(main(bubble_id, bubble_sid))
