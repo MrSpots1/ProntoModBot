@@ -458,8 +458,25 @@ bubble_id = main_bubble_ID
 bubble_info = get_bubble_info(accesstoken, bubble_id)
 bubble_owners = [row["user_id"] for row in bubble_info["bubble"]["memberships"] if row["role"] == "owner"]
 
+async def handle_status(request):
+    return web.Response(text="Bot is running!", status=200)
+async def main_loop():
+    # Create an aiohttp web application
+    app = web.Application()
+    app.router.add_get("/", handle_status)  # Add a route to check status
 
+    # Get the PORT from environment variables or default to 8080
+    port = int(os.getenv("PORT", "8080"))
 
+    # Start the aiohttp server
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    print(f"HTTP server running on port {port}")
+    await site.start()
+
+    # Run the WebSocket logic
+    await main(main_bubble_ID, bubble_sid)
 if user_id in bubble_owners:
     is_bot_owner = True
 bubbles = getUsersBubbles(accesstoken)
@@ -471,6 +488,6 @@ bubble_sid = bubble_info["bubble"]["channelcode"]
 print(bubble_sid)
 if __name__ == "__main__":
     try:
-        asyncio.run(main(main_bubble_ID, bubble_sid))
+        asyncio.run(main_loop())
     except KeyboardInterrupt:
         print("Server stopped.")
