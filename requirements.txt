@@ -6,4 +6,3 @@ DateTime~=5.5
 dataclasses~=0.6
 annotated-types~=0.7.0
 networkx~=3.4.2
-os
