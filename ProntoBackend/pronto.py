@@ -348,7 +348,7 @@ def kickUserFromBubble(access_token, bubbleID, users):
     }
     request_payload = {
         "bubble_id": bubbleID,
-        users: users,
+        "user_id": users,
     }
     try:
         response = requests.post(url, headers=headers, json=request_payload)
@@ -469,6 +469,33 @@ def pinMessage(access_token, pinned_message_id, pinned_message_expires_at):
         logger.error(f"An unexpected error occurred: {err}")
         raise BackendError(f"An unexpected error occurred: {err}")
 
+
+def getAllUsers(access_token):
+    url = f"{API_BASE_URL}api/clients/users/search"
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {access_token}",
+    }
+    request_payload = {
+        "page[size]": 1000,
+    }
+    try:
+        response = requests.get(url, headers=headers, json=request_payload)
+        response.raise_for_status()
+        response_json = response.json()
+        return response_json
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err} - Response: {response.text}")
+        if response.status_code == 401:
+            raise BackendError(f"HTTP error occurred: {http_err}")
+        else:
+            raise BackendError(f"HTTP error occurred: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        logger.error(f"Request exception occurred: {req_err}")
+        raise BackendError(f"Request exception occurred: {req_err}")
+    except Exception as err:
+        logger.error(f"An unexpected error occurred: {err}")
+        raise BackendError(f"An unexpected error occurred: {err}")
 #Function to create invite link
 #access is the access level of the invite, expiration is the expiration date of the invite
 #access example: access: "internal"

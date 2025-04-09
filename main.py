@@ -13,7 +13,7 @@ from dataclasses import dataclass, asdict
 from ProntoBackend.pronto import *
 from ProntoBackend.readjson import *
 from ProntoBackend.systemcheck import *
-from ProntoBackend.__pycache__.accesstoken import *
+from ProntoBackend.accesstoken import *
 auth_path, chats_path, bubbles_path, loginTokenJSONPath, authTokenJSONPath, verificationCodeResponseJSONPath, settings_path, encryption_path, logs_path, settingsJSONPath, keysJSONPath, bubbleOverviewJSONPath, users_path = createappfolders()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,8 +32,8 @@ accesstoken = ""
 accesstoken = getAccesstoken()
 user_id = "5301889"
 int_user_id = 5301889
-main_bubble_ID = "4209040"
-log_channel_ID = "4251207"
+main_bubble_ID = "3832006"
+log_channel_ID = "4283367"
 global media
 media = []
 headers = {
@@ -73,10 +73,12 @@ warning_message = ""
 log_message = ""
 last_message_id = ""
 global adminrules
-adminrules = ""
+adminrules = []
 global rules
-rules = ""
-
+rules = []
+if (main_bubble_ID == "3832006"):
+    adminrules.append("https://docs.google.com/document/d/1pYLhxWIXCVS49JT3aBVMjMlXQmPQbxkgjQjEXj87dSA/edit?tab=t.0")
+    rules.append("https://docs.google.com/document/d/17PhM0JfKHGlqzJ0OBohS4GQEAuc-ea0accY-lGU6zzs/edit?usp=sharing")
 # Bad Words List URL
 URL = "https://raw.githubusercontent.com/MrSpots1/MrSpots1.github.io/main/words%20%5BMConverter.eu%5D.txt"
 
@@ -145,7 +147,7 @@ async def connect_and_listen(bubble_id, bubble_sid):
                 print("Socket ID not found in response")
         
         #add a check for owners changing to update the bubble_owners and is_bot_owner
-
+        
         # Listen for incoming messages
         async for message in websocket:
             if message == "ping":
@@ -164,7 +166,6 @@ async def connect_and_listen(bubble_id, bubble_sid):
                     timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
                     msg_media = msg_content.get("message", {}).get("messagemedia", [])
                     
-
                     process_message(msg_text, user_firstname, user_lastname, timestamp, msg_media, user_id_websocket)
 
 
@@ -179,10 +180,9 @@ def process_message(msg_text, user_firstname, user_lastname, timestamp, msg_medi
         warning_count.append([user_id_websocket, 0])
         matches = list(filter(lambda row: row[0] == user_id_websocket, warning_count))
     msg_text_lower = msg_text.lower()
-    msg_id = str(uuid.uuid4())  # Simulate unique message ID
     sent_user_id = user_id_websocket  # This would be the actual user ID for the message sender
     # Check for Commands in the message
-    check_for_commands(msg_text_lower, sent_user_id)
+    check_for_commands(msg_text, sent_user_id)
     if (is_bot_on == 1):
         if settings[1] == 1:
             # Log the message
@@ -192,27 +192,35 @@ def process_message(msg_text, user_firstname, user_lastname, timestamp, msg_medi
         moderate_message(msg_text_lower, sent_user_id, matches, timestamp)
 
 # Check for any commands in the message
-def check_for_commands(msg_text, user_sender_id):
+def check_for_commands(msg_text_tall, user_sender_id):
     """Check for any commands in the message."""
+    chat = get_dm_or_create(user_sender_id)['bubble']['id']
+    global rules
+    global adminrules
+    msg_text = msg_text_tall.lower()
     if msg_text.startswith("!rules"):
-        if rules == "":
-            send_message("Warning: No rules have been set.", main_bubble_ID, media)
+        if rules.__len__() == 0:
+            # Handle case when rules are not set
+            send_message("No rules have been set.", chat, media)
         else:
-            send_message(f"Warning: The rules are: {rules}", main_bubble_ID, media)
+            send_message(f"The rules are: {rules[0]}", chat, media)
     elif msg_text.startswith("!adminrules"):
-        if adminrules == "":
-            send_message("Warning: No admin rules have been set.", main_bubble_ID, media)
+        if adminrules.__len__() == 0:
+            # Handle case when admin rules are not set
+            send_message("No admin rules have been set.", chat, media)
         else:
-            send_message(f"Warning: The admin rules are: {adminrules}", main_bubble_ID, media)
+            send_message(f"The admin rules are: {adminrules[0]}", chat, media)
     elif msg_text.startswith("!credits"):
-        send_message("This bot was created by:\nTaylan Derstadt (co29) (Lead Dev)\nVajra Vanukuri (co29) (Secondary Dev)\nJimbo Miller (co28) (Secondary Dev)\nAdditional thanks to Greyson Wyler (co29, websocket help) and Paul Estrada (co27, pronto api help)", main_bubble_ID, media)
+        send_message("This bot was created by:\nTaylan Derstadt (co29) (Lead Dev)", chat, media)
         return
     elif msg_text.startswith("!moderationbot"):
         command = msg_text[1:].split()
+        command2 = msg_text_tall[1:].split()
         if user_sender_id not in bubble_owners:
-            send_message("Warning: You do not have permission to use this command.", main_bubble_ID, media)
+            send_message("Warning: You do not have permission to use this command.", chat, media)
         else:
             if (len(command) == 2):
+                global is_bot_on
                 if command[1] == "start":
                     is_bot_on = 1
                     send_message("Warning: The Moderation Bot is now active and watching for criminals...", main_bubble_ID, media)
@@ -269,17 +277,21 @@ def check_for_commands(msg_text, user_sender_id):
                         except ValueError:
                             send_message("Warning: Invalid log channel ID. Please enter a valid number.", main_bubble_ID, media)
                     elif (command[2] == "rules"):
-                        rules = command[3]
-                        send_message(f"Rules changed to {rules}.", main_bubble_ID, media)
+                        rules.clear()
+                        rules.append(command2[3])
+                        send_message(f"Rules changed to {rules[0]}", main_bubble_ID, media)
                         return
                     elif (command[2] == "adminrules"):
-                        adminrules = command[3]
-                        send_message(f"Admin rules changed to {adminrules}.", main_bubble_ID, media)
+                        adminrules.clear()
+                        adminrules.append(command2[3])
+                        send_message(f"Admin rules changed to {adminrules[0]}", main_bubble_ID, media)
                         return
                     
             elif len(command) == 5:
                 if command[1] == "warnings":
-                    targetuser = re.search(r"<@\[(\d{7})\]>", command[3])
+                    targetuser = re.search(r"<@(\d+)>", command[3])
+                    
+                    
                     targetuserint = int(targetuser.group(1))
                     warning_number = int(command[4])  
                     if command[2] == "decrease":
@@ -293,44 +305,40 @@ def check_for_commands(msg_text, user_sender_id):
             send_message(f"Unknown command: '{msg_text}'", main_bubble_ID, media)
 
 # Validation Functions
-def validate_flagged_words(msg_text):
+def validate_flagged_words(sent_user_id, msg_text):
     """Check if the message contains flagged words and return a warning message if true."""
-    if settings[0] == 1 and flagsetting == 1:
-        flagged_sections = BAD_WORDS_REGEX.findall(msg_text)
-        if flagged_sections:
-            return f"Warning: Message contains {len(flagged_sections)} flagged section(s)!"
+    flagged_sections = BAD_WORDS_REGEX.findall(msg_text)
+    if flagged_sections and flagsetting == 1 and settings[0] == 1:
+        return f"Warning: Message contains {len(flagged_sections)} flagged section(s)!"
     return None
 
 
-def validate_repeated_messages(sent_user_id):
+def validate_repeated_messages( sent_user_id, index):
     """Check if the user has sent repeated messages."""
-    user_messages = stored_messages.get(sent_user_id, [StoredMessage(), StoredMessage(), StoredMessage()])
-    
-    if settings[2] == 1 and user_messages[0].text == user_messages[1].text == user_messages[2].text:
+    if settings[2] == 1 and stored_messages[index][1].message == stored_messages[index][2].message == stored_messages[index][3].message:
         return "Warning: Repeated message detected!"
     return None
 
 
-def validate_flag_limit(sent_user_id):
+def validate_flag_limit(sent_user_id, index):
     """Check if the user has exceeded the flag limit in recent messages."""
     if settings[0] == 1 and flagsetting > 1:
-        recent_flags = sum(msg.flagged_sections for msg in stored_messages[sent_user_id])
+        recent_flags = stored_messages[index][1].flags_in_message + stored_messages[index][2].flags_in_message + stored_messages[index][3].flags_in_message
         if recent_flags >= flagsetting:
             return f"Warning: User exceeded {flagsetting} flagged sections in the last 3 messages!"
     return None
 
 
-def validate_rate_limit(sent_user_id):
+def validate_rate_limit(sent_user_id, index):
     """Check if the user is exceeding the rate limit."""
     if settings[4] == 1:
-        user_messages = stored_messages.get(sent_user_id, [StoredMessage(), StoredMessage(), StoredMessage()])
-        time_diff = (user_messages[2].timestamp - user_messages[0].timestamp).total_seconds()
+        time_diff = (stored_messages[index][3].timestamp - stored_messages[index][1].timestamp).total_seconds()
         if time_diff < ratelimitseconds:
             return "Warning: Rate limit exceeded!"
     return None
 
 
-def validate_message_length(msg_text):
+def validate_message_length(sent_user_id, msg_text):
     """Check if the message exceeds the maximum allowed length."""
     if settings[3] == 1 and len(msg_text) > message_max_length:
         return f"Warning: Message exceeds {message_max_length} characters!"
@@ -345,37 +353,41 @@ def moderate_message(msg_text, sent_user_id, matches_warnings, timestamp):
     bad_section_flag = 0  # Initialize flag counter
 
     # Run flagged word check first to determine bad_section_flag
-    if warning_msg := validate_flagged_words(msg_text):
+    if warning_msg := validate_flagged_words(sent_user_id, msg_text):
         warnings.append(warning_msg)
         bad_section_flag = BAD_WORDS_REGEX.findall(msg_text)  # Count flagged sections
-
-    # Ensure the user has an entry in stored_messages
-    if sent_user_id not in stored_messages:
-        stored_messages[sent_user_id] = [
-            StoredMessage(), StoredMessage(), StoredMessage()
+    matches = list(filter(lambda row: row[0] == sent_user_id, stored_messages))
+    if matches.__len__() == 0:
+        data = [
+            sent_user_id, StoredMessage(), StoredMessage(), StoredMessage()
         ]
+        stored_messages.append(data)
+        matches = list(filter(lambda row: row[0] == sent_user_id, stored_messages))
+    index = stored_messages.index(matches[0])
 
     # Update stored messages for the user with flagged word count
-    user_messages = stored_messages[sent_user_id]
-    user_messages[0], user_messages[1], user_messages[2] = (
-        user_messages[1], 
-        user_messages[2], 
-        StoredMessage(msg_text, len(bad_section_flag), timestamp)  # Store bad word count
+    stored_messages[index][1], stored_messages[index][2], stored_messages[index][3] = (
+        stored_messages[index][2], 
+        stored_messages[index][3],
+        StoredMessage(msg_text, bad_section_flag, timestamp)  # Store bad word count
     )
 
     # Run other validation checks
-    if warning_msg := validate_repeated_messages(sent_user_id):
+    if warning_msg := validate_repeated_messages(sent_user_id, index):
         warnings.append(warning_msg)
-    if warning_msg := validate_flag_limit(sent_user_id):
+    if warning_msg := validate_flag_limit(sent_user_id, index):
         warnings.append(warning_msg)
-    if warning_msg := validate_rate_limit(sent_user_id):
+    if warning_msg := validate_rate_limit(sent_user_id, index):
         warnings.append(warning_msg)
-    if warning_msg := validate_message_length(msg_text):
+    if warning_msg := validate_message_length(sent_user_id, msg_text):
         warnings.append(warning_msg)
 
+
+    send_id = get_dm_or_create(sent_user_id)['bubble']['id']
     # Send warnings if there are any
     for warning_msg in warnings:
-        send_message(f"<@{sent_user_id}> {warning_msg}", main_bubble_ID, media)
+        send_message(f"<@{sent_user_id}> {warning_msg}", send_id, media)
+        send_message(f"<@{sent_user_id}> {warning_msg}", log_channel_ID, media)
         print(warning_msg)
 
     # Increase the warning count if necessary
@@ -386,23 +398,46 @@ def moderate_message(msg_text, sent_user_id, matches_warnings, timestamp):
 # Log message details to another channel
 def log(msg_text, sent_user_id, msg_media):
     log_message = f"Message sent by <@{sent_user_id}>: {msg_text}"
+
     file_keys = []
+    """
     for file in msg_media:
-        file_keys.append(upload_file_and_get_key[file])
+        file_keys.append(upload_file_and_get_key[file])"""
 
     send_message(log_message, log_channel_ID, file_keys)
     print(log_message)
 
-
+def get_dm_or_create(sent_user_id):
+    matches = list(filter(lambda row: row[0] == sent_user_id, stored_dms))
+    if matches.__len__() == 0:
+        test = createDM(accesstoken, sent_user_id, 2245)
+        data = [
+            sent_user_id, test
+        ]
+        stored_dms.append(data)
+        matches = list(filter(lambda row: row[0] == sent_user_id, stored_dms))
+    index = stored_dms.index(matches[0])
+    return stored_dms[index][1]
+    
 # Increase the warning count for a user
 def increase_warning_count(sent_user_id, number):
     matches = list(filter(lambda row: row[0] == sent_user_id, warning_count))
+    if matches.__len__() == 0:
+        warning_count.append([sent_user_id, 0])
+        matches = list(filter(lambda row: row[0] == sent_user_id, warning_count))
     index = warning_count.index(matches[0])
     warning_count[index][1] += number
     if (warning_count[index][1] >= warning_threshold):
         warning_message = f"Warning: <@{sent_user_id}> has reached the warning threshold of {warning_threshold} and has been removed!"
-        send_message(warning_message, main_bubble_ID, media)
-        kickUserFromBubble(accesstoken, main_bubble_ID, [sent_user_id])
+        chat = get_dm_or_create(sent_user_id)['bubble']['id']
+        send_message(warning_message, chat, media)
+        send_message(warning_message, log_channel_ID, media)
+        print(sent_user_id)
+        if sent_user_id != user_id:
+            kickUserFromBubble(accesstoken, main_bubble_ID, sent_user_id)
+        else:
+            print("naw bro that kid is invincible")
+            warning_count[index][1] = 0
         print(warning_message)
     return warning_count[index][1]
 
@@ -410,6 +445,9 @@ def increase_warning_count(sent_user_id, number):
 # Decrease the warning count for a user
 def decrease_warning_count(sent_user_id, number):
     matches = list(filter(lambda row: row[0] == sent_user_id, warning_count))
+    if matches.__len__() == 0:
+        warning_count.append([sent_user_id, 0])
+        matches = list(filter(lambda row: row[0] == sent_user_id, warning_count))
     index = warning_count.index(matches[0])
     if (warning_count[index][1] == 0):
         send_message(f"Warning: <@{sent_user_id}> has no warnings to decrease.", main_bubble_ID, media)
@@ -464,7 +502,7 @@ def upload_file_and_get_key(file_path, filename):
             return f"Request failed with status code: {response.status_code}, Error: {response.text}"
     except Exception as e:
         return f"An error occurred: {e}"
-
+"""
 #startup stuff
 print("This bot was created by:\nTaylan Derstadt (co29) (Lead Dev)\nVajra Vanukuri (co29) (Secondary Dev)\nJimbo Miller (co28) (Secondary Dev)\nAdditional thanks to Greyson Wyler (co29, websocket help) and Paul Estrada (co27, pronto api help)")
 while True:
@@ -486,15 +524,20 @@ while True:
             print("This is not a valid bubble id")
     else:
         print("This is not a valid 7 digit bubble id")
-
+"""
 bubble_id = main_bubble_ID
 bubble_info = get_bubble_info(accesstoken, bubble_id)
 bubble_owners = [row["user_id"] for row in bubble_info["bubble"]["memberships"] if row["role"] == "owner"]
+
+
+
 if user_id in bubble_owners:
     is_bot_owner = True
 bubbles = getUsersBubbles(accesstoken)
 dms = get_dms(bubbleOverviewJSONPath)
-print(dms)
+"""[{'id': 3858071, 'title': 'Inara Miyasaka'}, {'id': 3822074, 'title': 'Nathan Muruganantham'}, {'id': 3809608, 'title': 'Sofya Korzh'}, {'id': 3300546, 'title': 'Vajra Vanukuri'}, {'id': 3333256, 'title': 'Weston Yoo'}]"""
+global stored_dms
+stored_dms = []
 bubble_sid = bubble_info["bubble"]["channelcode"]
 print(bubble_sid)
 asyncio.run(main(bubble_id, bubble_sid))
