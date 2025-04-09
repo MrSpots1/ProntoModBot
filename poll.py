@@ -471,6 +471,6 @@ bubble_sid = bubble_info["bubble"]["channelcode"]
 print(bubble_sid)
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        asyncio.run(main(main_bubble_ID, bubble_sid))
     except KeyboardInterrupt:
         print("Server stopped.")
