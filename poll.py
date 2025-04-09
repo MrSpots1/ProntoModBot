@@ -2,6 +2,7 @@ from annotated_types import DocInfo
 from networkx import trivial_graph
 import websockets
 import asyncio
+from aiohttp import web
 import json
 import requests
 import sys
@@ -468,4 +469,8 @@ global stored_dms
 stored_dms = []
 bubble_sid = bubble_info["bubble"]["channelcode"]
 print(bubble_sid)
-asyncio.run(main(bubble_id, bubble_sid))
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Server stopped.")
