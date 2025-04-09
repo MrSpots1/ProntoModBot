@@ -1,6 +1,5 @@
 import os
-
+accesstoken = os.getenv("accesstoken")
 def getAccesstoken():
     accesstoken = os.getenv("accesstoken")
-    print(accesstoken)
     return accesstoken

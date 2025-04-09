@@ -53,17 +53,19 @@ headers = {
 game_state = {
     'running': False,
     'round': 1,
-    'board': [],
-    'current_question': None,
-    'current_chooser': None,
-    'choose_time': None,
-    'buzzed_in': None,
-    'buzzed_in_time': None,
     'scores': {},
-    'answered_users': set(),
     'final_registered': [],
     'final_answers': {},
-    'daily_double_used': set()
+    'answered_users': set(),
+    'daily_doubles': set(),
+    'buzzed_in': None,
+    'buzzed_in_time': 0,
+    'current_question': None,
+    'current_chooser': None,
+    'categories': [],
+    'board': [],
+    'buzzed': [],
+    'buzz_open': False
 }
 global warning_count
 warning_count = []
@@ -218,94 +220,84 @@ def check_for_commands(msg_text_tall, user_sender_id):
             game_state['final_registered'] = []
             game_state['final_answers'] = {}
             game_state['answered_users'] = set()
-            game_state['daily_double_used'] = set()
-            send_message("🎉 Jeopardy has started! Use !choose [Category] [Amount] to begin!", main_bubble_ID, [])
+            game_state['daily_doubles'] = set()
+            game_state['buzzed_in'] = None
+            game_state['buzzed_in_time'] = 0
+            game_state['current_question'] = None
+            game_state['current_chooser'] = None
             setup_game_board()
+            send_message("🎉 Jeopardy has started! Use !choose [Amount] [Category] to begin!", main_bubble_ID, [])
             display_board()
         else:
             send_message("A game is already running!", chat, [])
-
-
-
     if msg_text.startswith("!choose"):
         if not game_state['running']:
             send_message("No game is currently running.", chat, [])
             return
 
         if len(command) < 3:
-            send_message("Usage: !choose [Amount] [Catagory]", chat, [])
+            send_message("Usage: !choose [Amount] [Category]", chat, [])
             return
 
-        category = " ".join(command2[2:])
         try:
-            points = int(command[2])
+            points = int(command[1])
         except:
             send_message("Invalid point value.", chat, [])
             return
 
-        if category not in jeopardy_catagories:
+        category = " ".join(command2[2:])
+        if category not in game_state['categories']:
             send_message("Invalid category!", chat, [])
             return
 
-        for q in jeopardy_questions:
+        for q in game_state['board']:
             if q['category_id'] == category and int(q['points']) == points:
-
                 if random.random() < 0.1 and (category, points) not in game_state['daily_double_used']:
                     game_state['daily_double_used'].add((category, points))
-                    send_message("🎯 Daily Double! Use !dailydouble [amount] [answer]", main_bubble_ID, [])
+                    send_message("Daily Double! Use !dailydouble [amount] [answer]", main_bubble_ID, [])
+                    game_state['current_question'] = q
                     return
-
-
-
-                post_question()
+                post_question(q)
                 return
 
         send_message("Couldn't find a valid question at that amount in that category.", chat, [])
 
-
-
     if msg_text.startswith("!buzz"):
-
         if game_state['buzzed_in'] is None and game_state['current_question']:
             game_state['buzzed_in'] = user_sender_id
             game_state['buzzed_in_time'] = time.time()
-            send_message(f"{user_sender_id} has buzzed in! You have 20 seconds to answer with !answer [your answer]", main_bubble_ID, [])
+            send_message(f"<@{user_sender_id}> has buzzed in! You have 20 seconds to answer with !answer [your answer]", main_bubble_ID, [])
         else:
             send_message("Someone has already buzzed in or there's no active question.", chat, [])
 
     if msg_text.startswith("!answer"):
-
-        if time.time() - game_state['buzzed_in_time'] > 20:
-            send_message("⏰ Time's up!", main_bubble_ID, [])
-            game_state['buzzed_in'] = None
-            return
-            display_board()
-
         if user_sender_id != game_state['buzzed_in']:
             send_message("You didn't buzz in!", chat, [])
             return
 
+        if time.time() - game_state['buzzed_in_time'] > 20:
+            send_message("Time's up!", main_bubble_ID, [])
+            game_state['buzzed_in'] = None
+            display_board()
+            return
 
         answer_text = " ".join(command2[1:]).lower()
         correct_answers = [ans.lower() for ans in game_state['current_question']['answers']]
 
-        points = int(game_state['current_question']['points'])
         uid = str(user_sender_id)
-
-        if uid not in game_state['scores']:
-            game_state['scores'][uid] = 0
+        points = int(game_state['current_question']['points'])
+        game_state['scores'].setdefault(uid, 0)
 
         if answer_text in correct_answers:
             game_state['scores'][uid] += points
-            send_message(f"✅ Correct! {user_sender_id} gains {points} points.", main_bubble_ID, [])
+            send_message(f"Correct! <@{user_sender_id}> gains {points} points.", main_bubble_ID, [])
             game_state['current_chooser'] = user_sender_id
             game_state['current_question'] = None
-            display_board()
         else:
             game_state['scores'][uid] -= points
-            game_state['answered_users'].add(user_sender_id)
-            send_message(f"❌ Incorrect! {user_sender_id} loses {points} points.", main_bubble_ID, [])
+            send_message(f"Incorrect! <@{user_sender_id}> loses {points} points.", main_bubble_ID, [])
             game_state['buzzed_in'] = None
+        display_board()
 
     if msg_text.startswith("!dailydouble"):
         if game_state['current_question'] is None:
@@ -325,41 +317,25 @@ def check_for_commands(msg_text_tall, user_sender_id):
 
         uid = str(user_sender_id)
         score = game_state['scores'].get(uid, 0)
-        if wager < 1:
-            wager = 1
-        elif game_state['round'] == 1 and wager > score:
-            if score < 1000:
-                if wager > 1000:
-                    wager = 1000
-            if score > 1000:
-                wager = score
-        elif game_state['round'] == 2 and wager > score:
-            if score < 2000:
-                if wager > 2000:
-                    wager = 2000
-            if score > 2000:
-                wager = score
+        wager = max(1, min(wager, max(score, 1000 if game_state['round'] == 1 else 2000)))
 
         answer_text = " ".join(parts[1:]).lower()
         correct_answers = [ans.lower() for ans in game_state['current_question']['answers']]
 
-        if uid not in game_state['scores']:
-            game_state['scores'][uid] = 0
-
+        game_state['scores'].setdefault(uid, 0)
         if answer_text in correct_answers:
             game_state['scores'][uid] += wager
-            send_message(f"✅ Correct! {user_sender_id} gains {wager} points.", main_bubble_ID, [])
+            send_message(f"Correct! <@{user_sender_id}> gains {wager} points.", main_bubble_ID, [])
         else:
             game_state['scores'][uid] -= wager
-            send_message(f"❌ Incorrect! {user_sender_id} loses {wager} points.", main_bubble_ID, [])
+            send_message(f"Incorrect! <@{user_sender_id}> loses {wager} points.", main_bubble_ID, [])
 
         game_state['current_question'] = None
+        display_board()
 
     if msg_text.startswith("!score"):
         scores = sorted(game_state['scores'].items(), key=lambda x: x[1], reverse=True)
-        output = "🏆 Current Scores:\n"
-        for uid, score in scores:
-            output += f"<@{uid}>: {score}\n"
+        output = "🏆 Current Scores:\n" + "\n".join(f"<@{uid}>: {score}" for uid, score in scores)
         send_message(output, main_bubble_ID, [])
 
     if msg_text.startswith("!register"):
@@ -369,46 +345,9 @@ def check_for_commands(msg_text_tall, user_sender_id):
             send_message("You need at least $1 to register for Final Jeopardy.", chat, [])
         elif uid not in game_state['final_registered']:
             game_state['final_registered'].append(uid)
-            dm = get_dm_or_create(user_sender_id)['bubble']['id']
-            send_message(f"You've registered for Final Jeopardy! Your current score is ${score}.", dm, [])
-            send_message(f"{user_sender_id} has registered for Final Jeopardy!", main_bubble_ID, [])
+            send_message(f"You've registered for Final Jeopardy! Your current score is ${score}.", chat, [])
         else:
             send_message("You're already registered!", chat, [])
-    """global triviamaster
-    if msg_text.startswith("!trivia"):
-        global doing_trivia
-        if doing_trivia == 0:
-            doing_trivia = 1
-            triviamaster = user_sender_id
-            print(triviamaster)
-            randomint = random.randint(0, jeopardy_questions.__len__() - 2)
-            question = jeopardy_questions[randomint]
-            global quest
-            quest = json.loads(question[:-1])
-            capquest = quest['question'].capitalize()
-            send_message(f"Question: {capquest}", main_bubble_ID, media)
-            print(capquest)
-
-        else:
-            send_message("You cant start anouther trivia right now, one is already running.", chat, media)
-    if msg_text.startswith("!reveal"):
-        if doing_trivia == 1:
-            if user_sender_id in bubble_owners or user_sender_id == triviamaster:
-                doing_trivia = 0
-                answers = ""
-                for i in range(quest['answers'].__len__()):
-                    answers += quest['answers'][i].capitalize()
-                    print(quest['answers'].__len__())
-                    print(i)
-                    if i + 1 != quest['answers'].__len__():
-                        answers += ", "
-                send_message(f"Answer(s): {answers}", main_bubble_ID, media)
-            else:
-                send_message("You dont have permission to reveal the trivia.", chat, media)
-        else:
-            send_message("There is no trivia right now.", chat, media)"""
-
-
 
 def setup_game_board():
     chosen_categories = random.sample(jeopardy_catagories, 6)
@@ -418,16 +357,9 @@ def setup_game_board():
     for cat in chosen_categories:
         questions = [q for q in jeopardy_questions if q['category_id'] == cat]
         unique_points = sorted(set(int(q['points']) for q in questions))
-        selected = []
-
-        for pts in unique_points:
-            # Get only one question per point value per category
-            matching = [q for q in questions if int(q['points']) == pts]
-            if matching:
-                selected.append(random.choice(matching))
-
+        selected = [random.choice([q for q in questions if int(q['points']) == pts]) for pts in unique_points if [q for q in questions if int(q['points']) == pts]]
         game_state['board'].extend(selected)
-    send_message("🔧 Jeopardy board is set up!", main_bubble_ID, [])
+    print("🔧 Jeopardy board is set up!", main_bubble_ID, [])
 
 
 def get_dm_or_create(sent_user_id):
@@ -443,7 +375,7 @@ def get_dm_or_create(sent_user_id):
     return stored_dms[index][1]
 
 def start_final_jeopardy():
-    send_message("⏳ Final Jeopardy is starting in 1 minute! Use !register to join.", main_bubble_ID, [])
+    send_message("Final Jeopardy is starting in 1 minute! Use !register to join.", main_bubble_ID, [])
     time.sleep(60)
 
     if not game_state['final_registered']:
@@ -502,53 +434,53 @@ def start_final_jeopardy():
 
 
 def display_board():
-    board = {}
-    for cat in jeopardy_catagories:
-        board[cat] = []
-
+    board = {cat: [] for cat in game_state['categories']}
     for q in jeopardy_questions:
         cat = q['category_id']
         pts = int(q['points'])
+        used = q not in game_state['board']
         if cat in board:
-            already_used = q in game_state['board']
-            board[cat].append((pts, already_used))
-
+            board[cat].append((pts, used))
     msg = "Jeopardy Board:\n"
     for cat in board:
         msg += f"\n{cat}:\n"
-        cat_questions = sorted(board[cat], key=lambda x: x[0])
-        for pts, used in cat_questions:
-            mark = "❌" if used else f"${pts}"
-            msg += f" {mark} "
+        for pts, used in sorted(board[cat], key=lambda x: x[0]):
+            msg += f" {'❌' if used else f'${pts}'} "
         msg += "\n"
     send_message(msg, main_bubble_ID, [])
+
 # Send a message to the API
 
+# ========== Post a Question with Timeout ==========
 def post_question(question_obj):
     game_state['current_question'] = question_obj
     game_state['buzzed'] = []
     game_state['buzz_open'] = True
-    question = question_obj['question']
-    send_message(f"🧠 Question for ${question_obj['points']} in {question_obj['category_id']}:\n{question}",
-                 main_bubble_ID, [])
 
-    # Start buzz timer
+    question = question_obj['question']
+    send_message(f"Question for ${question_obj['points']} in {question_obj['category_id']}:\n{question}", main_bubble_ID, [])
+
     def buzz_timeout():
         time.sleep(10)
-        if not game_state['buzzed'] and game_state['buzz_open']:
+        if not game_state['buzzed_in'] and game_state['buzz_open']:
             game_state['buzz_open'] = False
             reveal_answer_timeout(question_obj)
 
     threading.Thread(target=buzz_timeout).start()
+
+
 def reveal_answer_timeout(question_obj):
     corrects = ", ".join(question_obj['answers'])
     send_message(f"⏱ Time’s up! No one buzzed in. The correct answer was: {corrects}", main_bubble_ID, [])
 
-    # Mark this question as used
     if question_obj in game_state['board']:
         game_state['board'].remove(question_obj)
 
+    game_state['current_question'] = None
     display_board()
+
+
+
 def send_message(message, bubble, send_media):
     unique_uuid = str(uuid.uuid4())
     messageCreatedat = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")

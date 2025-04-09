@@ -34,6 +34,8 @@ random = random.Random()
 api_base_url = "https://stanfordohs.pronto.io/"
 accesstoken = ""
 accesstoken = getAccesstoken()
+global PROCESS_MESSAGES
+PROCESS_MESSAGES = True
 user_id = "5301889"
 int_user_id = 5301889
 main_bubble_ID = "4293718"
@@ -107,7 +109,18 @@ tech_url = "https://raw.githubusercontent.com/el-cms/Open-trivia-database/refs/h
 toys_url = "https://raw.githubusercontent.com/el-cms/Open-trivia-database/refs/heads/master/en/todo/toys_and_games.json"
 misc_url = "https://raw.githubusercontent.com/el-cms/Open-trivia-database/refs/heads/master/en/todo/uncategorized.json"
 
-
+async def listen_for_commands():
+    global PROCESS_MESSAGES
+    while True:
+        command = input("Type 'on' to enable or 'off' to disable message processing: ").strip().lower()
+        if command == "on":
+            PROCESS_MESSAGES = True
+            print("Message processing is enabled.")
+        elif command == "off":
+            PROCESS_MESSAGES = False
+            print("Message processing is disabled.")
+        else:
+            print("Invalid command. Please type 'on' or 'off'.")
 
 # Download Bad Words List
 def download_wordlist(url):
@@ -226,6 +239,10 @@ async def main(bubble_id, bubble_sid):
 
 # Mod Bot Logic for Processing Messages
 def process_message(msg_text, user_firstname, user_lastname, timestamp, msg_media, user_id_websocket):
+    global PROCESS_MESSAGES
+    if not PROCESS_MESSAGES:
+        return
+
     matches = list(filter(lambda row: row[0] == user_id_websocket, warning_count))
     if matches.__len__() == 0:
         warning_count.append([user_id_websocket, 0])
@@ -475,6 +492,7 @@ async def main_loop():
     print(f"HTTP server running on port {port}")
     await site.start()
 
+    asyncio.create_task(listen_for_commands())
     # Run the WebSocket logic
     await main(main_bubble_ID, bubble_sid)
 if user_id in bubble_owners:
